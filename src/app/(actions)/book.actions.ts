@@ -2,6 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { supabaseServer } from "@/src/libs/supabase/supabase-server";
 
 function getErrorMessage(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -20,22 +21,22 @@ export async function createBook(formData: FormData) {
     const tagsStr = formData.get("tags")?.toString() ?? "";
     const cover_url = formData.get("cover_url")?.toString() ?? "";
 
+    if (!title.trim() || !author.trim()) {
+      throw new Error("Title và Author là bắt buộc");
+    }
+
     const tags = tagsStr
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/book`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, author, tags, cover_url }),
-    });
+    const sb = supabaseServer();
+    const { error } = await sb
+      .from("books")
+      .insert({ title, author, tags, cover_url });
 
-    if (!res.ok) {
-      const { error } = await res
-        .json()
-        .catch(() => ({ error: res.statusText }));
-      throw new Error(error || "Create failed");
+    if (error) {
+      throw new Error(error.message);
     }
 
     revalidatePath("/home", "page");
@@ -53,25 +54,23 @@ export async function updateBook(id: string, formData: FormData) {
     const tagsStr = formData.get("tags")?.toString() ?? "";
     const cover_url = formData.get("cover_url")?.toString() ?? "";
 
+    if (!title.trim() || !author.trim()) {
+      throw new Error("Title và Author là bắt buộc");
+    }
+
     const tags = tagsStr
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/book/${id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, author, tags, cover_url }),
-      }
-    );
+    const sb = supabaseServer();
+    const { error } = await sb
+      .from("books")
+      .update({ title, author, tags, cover_url })
+      .eq("id", id);
 
-    if (!res.ok) {
-      const { error } = await res
-        .json()
-        .catch(() => ({ error: res.statusText }));
-      throw new Error(error || "Update failed");
+    if (error) {
+      throw new Error(error.message);
     }
 
     revalidatePath("/home", "page");
@@ -85,18 +84,11 @@ export async function updateBook(id: string, formData: FormData) {
 
 export async function deleteBook(id: string) {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/book/${id}`,
-      {
-        method: "DELETE",
-      }
-    );
+    const sb = supabaseServer();
+    const { error } = await sb.from("books").delete().eq("id", id);
 
-    if (!res.ok) {
-      const { error } = await res
-        .json()
-        .catch(() => ({ error: res.statusText }));
-      throw new Error(error || "Delete failed");
+    if (error) {
+      throw new Error(error.message);
     }
 
     revalidatePath("/home", "page");
