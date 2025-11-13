@@ -2,6 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { supabaseServer } from "@/src/libs/supabase/supabase-server";
 
 function getErrorMessage(e: unknown): string {
@@ -40,11 +41,12 @@ export async function createBook(formData: FormData) {
     }
 
     revalidatePath("/home", "page");
-    return { ok: true };
   } catch (e: unknown) {
     console.error("createBook failed:", e);
     throw new Error(getErrorMessage(e));
   }
+
+  redirect("/home");
 }
 
 export async function updateBook(id: string, formData: FormData) {
@@ -75,11 +77,12 @@ export async function updateBook(id: string, formData: FormData) {
 
     revalidatePath("/home", "page");
     revalidatePath(`/home/${id}`, "page");
-    return { ok: true };
   } catch (e: unknown) {
     console.error("updateBook failed:", e);
     throw new Error(getErrorMessage(e));
   }
+
+  redirect("/home");
 }
 
 export async function deleteBook(id: string) {
@@ -92,9 +95,10 @@ export async function deleteBook(id: string) {
     }
 
     revalidatePath("/home", "page");
-    return { ok: true };
   } catch (e: unknown) {
     console.error("deleteBook failed:", e);
     throw new Error(getErrorMessage(e));
   }
+
+  redirect("/home");
 }
